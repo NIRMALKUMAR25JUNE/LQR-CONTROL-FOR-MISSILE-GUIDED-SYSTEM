@@ -1,1 +1,71 @@
 
+%HERE WE HAVE DEFINED (A,B,C,D and K) FOR RUNNING THE SIMULINK MODEL
+%CONTROL MODEL
+clear variables;
+clc;
+AC=[-1 1 0 0;-1217 -3 0 286;0 0 212 -22500;0 0 1 0];
+BC= [0;0;22900;0];
+CC = 10^-6*[59.1024 0 0 28.7188];
+DC = [0];
+syscontrol=ss(AC,BC,CC,DC)
+k2 = acker(AC,BC,[-1 -1 -1 -1])                 %POLE PLACEMENT
+sysc=ss(AC-BC*k2,BC,CC,DC)
+sysctf=tf(sysc)
+KL=lqr(syscontrol,eye(4,4),1)
+%A=[0 1 0 0;0 0 1 -1;1 0 -1 0 ;0 0 0 -1];
+%B= [0;0;0;1];
+%C = [1 0 0 0];
+%D = [0];
+
+
+
+
+%GUIDANCE LAW
+A=[0 1 0 0 0;0 0 -1 0 1/25;0 0 0 1 0;0 0 0 0 1;0 0 -400 -400*(1.4/20+1) -400*(1/400+1.4/20)];
+B= [0 0;1 0;0 0;0 0;0 400];
+C = eye(5,5);
+D = [0];
+Q=[1 0 0 0 0;0 0 0 0 0;0 0 0 0 0;0 0 0 0 0;0 0 0 0 0];
+R=[1 -1;-1 2];
+
+C2=[1 0 0 0 0]
+sys=ss(A,B,C,D);
+sysf1=ss(A,B,C2,D);
+k1=lqr(sys,0.5*Q,0.5*R)
+sysf1=ss(A-B*k1,B,C2,D);
+sys2=ss(A-B*k1,B,C,D)
+K = place(A,B,[-5 -4 -3 -2 -1])
+system2=tf(sysf1)
+sysfinal=system2*sysctf
+NUM=[0.6577 21.6 1537 3.56e04 4.929e05 3.696e05]
+DEN=[1 34.52 601.5 3166 8407 1.324e04 1.302e04 7889 2701 400]
+[AF BF CF DF]=tf2ss(NUM,DEN)
+
+sysF=ss(AF,BF,CF,DF);
+R1=eye(1,1)
+Q1=eye(9,9)
+kF=lqr(sysF,0.5*Q1,0.5*R1)
+%[AF BF CF DF]=tf2ss(sysfinal)
+%k1=lqr(sys,0.5*Q,0.5*R)
+%K = place(A,B,[-5 -4 -3 -2 -1])% WE HAVE FOUND THE VALUES OF K WITH THE HELP OF DESIRED POLE LOCATION
+eig(A)
+eig(A - B*K)
+if rank(ctrb(A,B)) == length(A)
+    disp('System is controllable');
+    E=ctrb(A,B);
+    rankcontr=rank(E)
+else
+    disp('System is not controllable');
+end
+if rank(obsv(A,C)) == length(A)
+    disp('System is observable');
+    O=obsv(A,C);
+    rankobsv=rank(O)
+else
+    disp('System is not observable');
+end
+sys_cl = ss(A - B*K, B, C, D);
+%step(sys_cl);
+
+sys_cl = ss(A - B*k1, B, C, D);
+%step(sys_cl);
